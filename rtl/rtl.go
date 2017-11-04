@@ -13,6 +13,7 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -226,8 +227,9 @@ func (dev *Device) TunerGains() ([]int, error) {
 }
 
 // SetTunerGain sets the gain for the device. Manual gain mode must be enabled for this to work.
-// Valid gain values (in tenths of a dB) for the E4000 tuner: -10, 15, 40, 65, 90, 115, 140, 165,
+// Value is in tenths of dB and varies by tuner. For the E4000 tuner: -10, 15, 40, 65, 90, 115, 140, 165,
 // 190, 215, 240, 290, 340, 420, 430, 450, 470, 490 Gain values are in tenths of dB, e.g. 115 means 11.5 dB.
+// Should use TunerGains() to get the list of supported gains.
 func (dev *Device) SetTunerGain(gain int) error {
 	if C.rtlsdr_set_tuner_gain(dev.cDev, C.int(gain)) < 0 {
 		return ErrFailed
@@ -299,6 +301,80 @@ func (dev *Device) SampleRate() (int, error) {
 // ResetBuffer resets internal buffers.
 func (dev *Device) ResetBuffer() error {
 	if C.rtlsdr_reset_buffer(dev.cDev) < 0 {
+		return ErrFailed
+	}
+	return nil
+}
+
+type DirectSampling int
+
+const (
+	DirectSamplingOff  DirectSampling = 0
+	DirectSamplingIADC DirectSampling = 1
+	DirectSamplingQADC DirectSampling = 2
+)
+
+func (ds DirectSampling) String() string {
+	switch ds {
+	case DirectSamplingOff:
+		return "Off"
+	case DirectSamplingIADC:
+		return "I-ADC"
+	case DirectSamplingQADC:
+		return "Q-ADC"
+	}
+	return fmt.Sprintf("DirectSampling(%d)", ds)
+}
+
+// SetDirectSampling enables or disables the direct sampling mode. When enabled, the IF mode
+// of the RTL2832 is activated, and rtlsdr_set_center_freq() will control
+// the IF-frequency of the DDC, which can be used to tune from 0 to 28.8 MHz
+// (xtal frequency of the RTL2832).
+func (dev *Device) SetDirectSampling(ds DirectSampling) error {
+	if C.rtlsdr_set_direct_sampling(dev.cDev, C.int(ds)) < 0 {
+		return ErrFailed
+	}
+	return nil
+}
+
+// GetDirectSampling returns the state of the direct sampling mode.
+func (dev *Device) GetDirectSampling() (DirectSampling, error) {
+	r := C.rtlsdr_get_direct_sampling(dev.cDev)
+	if r < 0 {
+		return 0, ErrFailed
+	}
+	return DirectSampling(r), nil
+}
+
+// SetOffsetTuning enables or disables offset tuning for zero-IF tuners, which allows to avoid
+// problems caused by the DC offset of the ADCs and 1/f noise.
+func (dev *Device) SetOffsetTuning(enabled bool) error {
+	var e C.int
+	if enabled {
+		e = 1
+	}
+	if C.rtlsdr_set_offset_tuning(dev.cDev, e) < 0 {
+		return ErrFailed
+	}
+	return nil
+}
+
+// GetOffsetTuning returns the state of the offset tuning mode
+func (dev *Device) GetOffsetTuning() (bool, error) {
+	r := C.rtlsdr_get_offset_tuning(dev.cDev)
+	if r < 0 {
+		return false, ErrFailed
+	}
+	return r == 1, nil
+}
+
+// SetBiasTee enables or disables the bias tee on GPIO PIN 0.
+func (dev *Device) SetBiasTee(enabled bool) error {
+	var e C.int
+	if enabled {
+		e = 1
+	}
+	if C.rtlsdr_set_bias_tee(dev.cDev, e) < 0 {
 		return ErrFailed
 	}
 	return nil
