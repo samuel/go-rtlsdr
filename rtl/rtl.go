@@ -52,10 +52,10 @@ var (
 	}
 )
 
-// LibUSBErr is an error from libusb
-type LibUSBErr int
+// LibUSBError is an error from libusb
+type LibUSBError int
 
-func (e LibUSBErr) Error() string {
+func (e LibUSBError) Error() string {
 	return C.GoString(C.libusb_error_name(C.int(e)))
 }
 
@@ -384,7 +384,7 @@ func (dev *Device) SetBiasTee(enabled bool) error {
 func (dev *Device) Read(buf []byte) (int, error) {
 	var nRead C.int
 	if res := C.rtlsdr_read_sync(dev.cDev, unsafe.Pointer(&buf[0]), C.int(len(buf)), &nRead); res != 0 {
-		return 0, LibUSBErr(int(res))
+		return 0, LibUSBError(int(res))
 	}
 	return int(nRead), nil
 }
