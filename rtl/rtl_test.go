@@ -37,6 +37,29 @@ func TestBasics(t *testing.T) {
 		} else {
 			t.Logf("\tTuner Gains: %+v", gains)
 		}
+
+		if err := dev.SetCenterFreq(97.9e6); err != nil {
+			t.Errorf("Failed to set center freq: %s", err)
+		}
+
+		// buf := make([]byte, 1024)
+		// n, err := dev.Read(buf)
+		// if err != nil {
+		// 	t.Errorf("Read failed: %s", err)
+		// }
+		// t.Logf("Read %d bytes synchronously\n", n)
+		if err := dev.ResetBuffer(); err != nil {
+			t.Fatalf("Failed to reset internal buffers: %s", err)
+		}
+		ch := make(chan int, 1)
+		if err := dev.ReadAsync(1, 32768, func(buf []byte) bool {
+			ch <- len(buf)
+			return true
+		}); err != nil {
+			t.Errorf("Async read failed: %s", err)
+		}
+		nRead := <-ch
+		t.Logf("Read %d bytes asynchronously\n", nRead)
 		if err := dev.Close(); err != nil {
 			t.Fatalf("Close failed: %+v", err)
 		}

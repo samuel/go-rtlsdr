@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"sync"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -76,17 +76,13 @@ type asyncCallbackContext struct {
 }
 
 //export cbAsyncGo
-func cbAsyncGo(buf *C.uchar, size C.uint32_t, ctx unsafe.Pointer) {
-	cbHandlesMu.RLock()
-	cbc := cbHandles[uintptr(ctx)]
-	cbHandlesMu.RUnlock()
-
+func cbAsyncGo(buf *C.uchar, size C.uint32_t, cbCtx unsafe.Pointer) {
+	cbHandle := cgo.Handle(cbCtx)
+	cbc := cbHandle.Value().(*asyncCallbackContext)
 	goBuf := (*[1 << 30]byte)(unsafe.Pointer(buf))[:size:size]
 	if cbc.cb(goBuf) {
-		cbHandlesMu.Lock()
 		C.rtlsdr_cancel_async(cbc.dev.cDev)
-		cbHandles[uintptr(ctx)] = nil
-		cbHandlesMu.Unlock()
+		cbHandle.Delete()
 	}
 }
 
@@ -396,7 +392,7 @@ type buffer struct {
 
 // ReadAsyncUsingSync starts an asynchronous background read. The provided callback
 // is called for all buffers read. This is similar to ReadAsync but this version
-// starts a goroutine that uses the synhcornous read of the librtlsdr library.
+// starts a goroutine that uses the synchronous read of the librtlsdr library.
 func (dev *Device) ReadAsyncUsingSync(nBuffers, bufferSize int, cb AsyncCallback) error {
 	bufferSize &^= 1
 	bufferCache := make(chan buffer, nBuffers)
@@ -444,25 +440,15 @@ func (dev *Device) ReadAsyncUsingSync(nBuffers, bufferSize int, cb AsyncCallback
 	return nil
 }
 
-var (
-	cbHandlesMu   sync.RWMutex
-	cbHandlesNext uintptr
-	cbHandles     = make(map[uintptr]*asyncCallbackContext)
-)
-
 // ReadAsyncUsingSync starts an asynchronous background read. The provided callback
 // is called for all buffers read. This is similar to ReadAsyncUsingSync but this version
 // relies on the built-in asynchronous reading in the librtlsdr library.
 func (dev *Device) ReadAsync(nBuffers, bufferSize int, cb AsyncCallback) error {
 	go func() {
-		cbHandlesMu.Lock()
-		cbHandlesNext++
-		handle := cbHandlesNext
-		cbHandles[handle] = &asyncCallbackContext{
+		handle := cgo.NewHandle(&asyncCallbackContext{
 			cb:  cb,
 			dev: dev,
-		}
-		cbHandlesMu.Unlock()
+		})
 		C.read_async(dev.cDev, (*[0]byte)(unsafe.Pointer(C.cbAsyncPtr)), C.intptr_t(handle), C.uint32_t(nBuffers), C.uint32_t(bufferSize))
 	}()
 	return nil
