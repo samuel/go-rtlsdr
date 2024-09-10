@@ -11,7 +11,7 @@ func TestBasics(t *testing.T) {
 	}
 	t.Logf("Device count: %d", devCount)
 
-	for i := 0; i < devCount; i++ {
+	for i := range devCount {
 		name := DeviceName(i)
 		if name == "" {
 			t.Fatalf("Failed to get device name for index %d", i)

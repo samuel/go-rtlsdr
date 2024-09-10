@@ -2,8 +2,8 @@
 package rtl
 
 // #cgo LDFLAGS: -lrtlsdr
-// #cgo darwin CFLAGS: -I/usr/local/include
-// #cgo darwin LDFLAGS: -L/usr/local/lib
+// #cgo darwin CFLAGS: -I/usr/local/include -I/opt/homebrew/include
+// #cgo darwin LDFLAGS: -L/usr/local/lib -L/opt/homebrew/lib
 // #cgo pkg-config: libusb-1.0
 // #include <stdlib.h>
 // #include <rtl-sdr.h>
@@ -40,17 +40,15 @@ const (
 	TunerTypeR828D   TunerType = C.RTLSDR_TUNER_R828D
 )
 
-var (
-	tunerTypeNames = map[TunerType]string{
-		TunerTypeUnknown: "Unknown",
-		TunerTypeE4000:   "E4000",
-		TunerTypeFC0012:  "FC0012",
-		TunerTypeFC0013:  "FC0013",
-		TunerTypeFC2580:  "FC2580",
-		TunerTypeR820T:   "R820T",
-		TunerTypeR828D:   "R828D",
-	}
-)
+var tunerTypeNames = map[TunerType]string{
+	TunerTypeUnknown: "Unknown",
+	TunerTypeE4000:   "E4000",
+	TunerTypeFC0012:  "FC0012",
+	TunerTypeFC0013:  "FC0013",
+	TunerTypeFC2580:  "FC2580",
+	TunerTypeR820T:   "R820T",
+	TunerTypeR828D:   "R828D",
+}
 
 // LibUSBError is an error from libusb
 type LibUSBError int
@@ -398,7 +396,7 @@ func (dev *Device) ReadAsyncUsingSync(nBuffers, bufferSize int, cb AsyncCallback
 	bufferCache := make(chan buffer, nBuffers)
 	sampleChan := make(chan buffer, nBuffers)
 
-	for i := 0; i < nBuffers; i++ {
+	for range nBuffers {
 		bufferCache <- buffer{bytes: make([]byte, bufferSize)}
 	}
 

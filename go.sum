@@ -1,2 +1,4 @@
 github.com/samuel/go-dsp v0.0.0-20180112204629-3ce1907a4765 h1:zrZCranmm80lTW7bb6sZ3JaT6YV1VlsRG4LDkGGdIn8=
 github.com/samuel/go-dsp v0.0.0-20180112204629-3ce1907a4765/go.mod h1:Zfx80ewpAiSf7qZNjwsTKSFli04lrKDE6tm6P98Bx5Q=
+github.com/samuel/go-dsp v0.0.0-20240910171456-305488f64539 h1:zeM6nhzjNRhaX09Oyx7oQkBaoo6OO/Ii8vT/DeHNSxA=
+github.com/samuel/go-dsp v0.0.0-20240910171456-305488f64539/go.mod h1:Zfx80ewpAiSf7qZNjwsTKSFli04lrKDE6tm6P98Bx5Q=

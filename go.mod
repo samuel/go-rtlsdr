@@ -1,5 +1,5 @@
 module github.com/samuel/go-rtlsdr
 
-go 1.17
+go 1.22
 
-require github.com/samuel/go-dsp v0.0.0-20180112204629-3ce1907a4765
+require github.com/samuel/go-dsp v0.0.0-20240910171456-305488f64539

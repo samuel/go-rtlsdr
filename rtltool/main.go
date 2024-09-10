@@ -17,7 +17,7 @@ const (
 	bufferSize = 256 * 1024 // in samples
 )
 
-var flagCpuProfile = flag.Bool("profile.cpu", false, "Enable CPU profiling")
+var flagCPUProfile = flag.Bool("profile.cpu", false, "Enable CPU profiling")
 
 type buffer struct {
 	bytes []byte
@@ -27,7 +27,7 @@ type buffer struct {
 func main() {
 	flag.Parse()
 
-	if *flagCpuProfile {
+	if *flagCPUProfile {
 		wr, err := os.Create("cpu.prof")
 		if err != nil {
 			log.Fatal(err)
@@ -85,9 +85,9 @@ func main() {
 	samples := make([]complex64, bufferSize)
 	pcm := make([]float32, bufferSize)
 
-	dev.ReadAsync(nBuffers, bufferSize, func(buf []byte) bool {
+	_ = dev.ReadAsync(nBuffers, bufferSize, func(buf []byte) bool {
 		select {
-		case _ = <-stopChan:
+		case <-stopChan:
 			return true
 		default:
 		}
@@ -100,8 +100,7 @@ func main() {
 		samples2 = rotate90.Filter(samples[:n])
 		samples2 = lowPass1.Filter(samples2)
 		n = fmDemod.Demodulate(samples2, pcm)
-		var pcm2 []float32
-		pcm2 = lowPass2.Filter(pcm[:n])
+		pcm2 := lowPass2.Filter(pcm[:n])
 		// if pcm2, err = lowPass3.Filter(pcm2); err != nil {
 		// 	log.Fatal(err)
 		// }
@@ -114,11 +113,11 @@ func main() {
 	})
 
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, os.Kill)
+	signal.Notify(signalChan, os.Interrupt)
 	<-signalChan
 	close(stopChan)
 
-	if *flagCpuProfile {
+	if *flagCPUProfile {
 		pprof.StopCPUProfile()
 	}
 }
